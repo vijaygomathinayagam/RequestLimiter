@@ -3,20 +3,31 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
 	"net/http"
+	"github.com/go-redis/redis"
+)
+
+const (
+	redisHost = "redis"
+	redisPort = "6379"
+	appListenPort = "8080"
+	ipAccessLimitMinutes = 1
+	ipAccessLimitCount = 100
+)
+
+var (
+	redisClient *redis.Client
 )
 
 func main() {
+	initRedis()
 	http.HandleFunc("/", limitRequest)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Printf("Application is listening on port: %s\n", appListenPort)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", appListenPort), nil))
 }
 
-func limitRequest(w http.ResponseWriter, req *http.Request) {
-	ip, _, err := net.SplitHostPort(req.RemoteAddr)
-	if err != nil {
-		log.Printf("Error spliting request remote address, %q", req.RemoteAddr)
-	}
-	userIP := net.ParseIP(ip)
-	fmt.Println(userIP)
+func initRedis() {
+	redisClient = redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+	})
 }
