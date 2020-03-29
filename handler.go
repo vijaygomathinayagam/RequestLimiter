@@ -75,17 +75,23 @@ func setIPAccessCount(ip string, count int) {
 }
 
 func getOrCreateMutexForIp(ip string) sync.Mutex {
+	var isIpMuxCreateMuxLocker bool
+	defer func() {
+		if isIpMuxCreateMuxLocker {
+			ipMuxCreateMux.Unlock()
+		}
+	}()
 	if mux, ok := ipMutexMap[ip]; ok {
 		return mux
 	}
 
 	ipMuxCreateMux.Lock()
+	isIpMuxCreateMuxLocker = true
 	if mux, ok := ipMutexMap[ip]; ok {
 		return mux
 	}
 	var mux sync.Mutex
 	ipMutexMap[ip] = mux
-	ipMuxCreateMux.Unlock()
-
+	
 	return mux
 }
