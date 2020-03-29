@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"time"
+	"strconv"
 	"log"
 )
 
@@ -32,10 +33,26 @@ func limitRequest(w http.ResponseWriter, req *http.Request) {
 }
 
 func getIPAccessCount(ip string) int {
-	var count int
-	err := redisClient.Get(ip).Scan(count)
+	// checking whether key exists
+	existsVal, err := redisClient.Exists(ip).Result()
 	if err != nil {
-		log.Printf("Error while scanning redis value for key: %s, err: %v\n", ip, err)
+		log.Printf("Error while checking redis key: %s exists, err: %v\n", ip, err)
+	}
+	if existsVal == 0 {
+		return 0
+	}
+
+	// reading the count
+	var count int
+	var countString string
+	countString, err = redisClient.Get(ip).Result()
+	if err != nil {
+		log.Printf("Error while getting redis value for key: %s, err: %v\n", ip, err)
+	}
+
+	count, err = strconv.Atoi(countString)
+	if err != nil {
+		log.Printf("Error while converting redis value: %s to integer, err: %v\n", countString, err)
 	}
 	return count
 }
