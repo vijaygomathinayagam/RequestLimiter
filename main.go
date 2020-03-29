@@ -2,17 +2,17 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-redis/redis"
 	"log"
 	"net/http"
-	"github.com/go-redis/redis"
 )
 
 const (
-	redisHost = "redis"
-	redisPort = "6379"
-	appListenPort = "8080"
+	redisHost            = "redis"
+	redisPort            = "6379"
+	appListenPort        = "8080"
 	ipAccessLimitMinutes = 1
-	ipAccessLimitCount = 100
+	ipAccessLimitCount   = 100
 )
 
 var (
@@ -28,6 +28,6 @@ func main() {
 
 func initRedis() {
 	redisClient = redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+		Addr: fmt.Sprintf("%s:%s", redisHost, redisPort),
 	})
 }

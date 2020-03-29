@@ -1,11 +1,17 @@
 package main
 
 import (
+	"log"
 	"net"
 	"net/http"
-	"time"
 	"strconv"
-	"log"
+	"sync"
+	"time"
+)
+
+var (
+	ipMutexMap     = make(map[string]sync.Mutex)
+	ipMuxCreateMux sync.Mutex
 )
 
 func limitRequest(w http.ResponseWriter, req *http.Request) {
@@ -16,6 +22,9 @@ func limitRequest(w http.ResponseWriter, req *http.Request) {
 	}
 	userIP := net.ParseIP(ip)
 
+	ipMux := getOrCreateMutexForIp(userIP.String())
+
+	ipMux.Lock()
 	// getting access count from redis
 	accessCount := getIPAccessCount(userIP.String())
 
@@ -25,11 +34,12 @@ func limitRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// increment the access count
+	setIPAccessCount(userIP.String(), accessCount+1)
+	ipMux.Unlock()
+
 	// forward the request
 
-
-	// increment the access count
-	setIPAccessCount(userIP.String(), accessCount + 1)
 }
 
 func getIPAccessCount(ip string) int {
@@ -58,8 +68,24 @@ func getIPAccessCount(ip string) int {
 }
 
 func setIPAccessCount(ip string, count int) {
-	err := redisClient.Set(ip, count, ipAccessLimitMinutes * time.Minute).Err()
+	err := redisClient.Set(ip, count, ipAccessLimitMinutes*time.Minute).Err()
 	if err != nil {
 		log.Printf("Error while setting redis value: %s, for key: %s, err: %v", count, ip, err)
 	}
+}
+
+func getOrCreateMutexForIp(ip string) sync.Mutex {
+	if mux, ok := ipMutexMap[ip]; ok {
+		return mux
+	}
+
+	ipMuxCreateMux.Lock()
+	if mux, ok := ipMutexMap[ip]; ok {
+		return mux
+	}
+	var mux sync.Mutex
+	ipMutexMap[ip] = mux
+	ipMuxCreateMux.Unlock()
+
+	return mux
 }
