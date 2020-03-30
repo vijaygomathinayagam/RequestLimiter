@@ -10,9 +10,10 @@ import (
 const (
 	redisHost            = "redis"
 	redisPort            = "6379"
-	appListenPort        = "8080"
+	appListenPort        = "8081"
 	ipAccessLimitMinutes = 1
 	ipAccessLimitCount   = 100
+	urlToProxy = "localhost:8080"
 )
 
 var (
@@ -21,7 +22,11 @@ var (
 
 func main() {
 	initRedis()
+
 	http.HandleFunc("/", limitRequest)
+
+	initReverseProxy()
+
 	fmt.Printf("Application is listening on port: %s\n", appListenPort)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", appListenPort), nil))
 }

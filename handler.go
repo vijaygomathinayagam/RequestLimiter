@@ -7,12 +7,24 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"net/url"
+	"net/http/httputil"
 )
 
 var (
 	ipMutexMap     = make(map[string]sync.Mutex)
 	ipMuxCreateMux sync.Mutex
+	proxy *httputil.ReverseProxy
 )
+
+func initReverseProxy() {
+	remote, err := url.Parse(urlToProxy)
+	if err != nil {
+			panic(err)
+	}
+
+	proxy = httputil.NewSingleHostReverseProxy(remote)
+}
 
 func limitRequest(w http.ResponseWriter, req *http.Request) {
 	// getting ip alone
@@ -39,7 +51,7 @@ func limitRequest(w http.ResponseWriter, req *http.Request) {
 	ipMux.Unlock()
 
 	// forward the request
-
+	proxy.ServeHTTP(w, req);
 }
 
 func getIPAccessCount(ip string) int {
